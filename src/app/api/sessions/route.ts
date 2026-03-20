@@ -6,44 +6,44 @@ export async function GET(request: NextRequest) {
   const gatewayToken = searchParams.get('gatewayToken');
 
   if (!gatewayUrl || !gatewayToken) {
-    return NextResponse.json({ error: 'Gateway URL and token required' }, { status: 400 });
+    // Fall back to local CLI for development
+    try {
+      const { execSync } = await import('child_process');
+      const output = execSync(
+        'openclaw sessions --json 2>/dev/null | sed "/^\\[plugins\\]/d" | sed "/^\\s*$/d"',
+        { encoding: 'utf-8', timeout: 15000, maxBuffer: 5 * 1024 * 1024 }
+      );
+      const lines = output.trim().split('\n').filter(l => l.trim());
+      const sessions = [];
+      for (const line of lines) {
+        try { sessions.push(JSON.parse(line.trim())); } catch { /* skip */ }
+      }
+      return NextResponse.json({ sessions, count: sessions.length });
+    } catch {
+      return NextResponse.json({ sessions: [], count: 0 });
+    }
   }
 
-  try {
-    // Try the gateway API endpoint for sessions
-    const response = await fetch(`${gatewayUrl}/api/sessions`, {
-      headers: {
-        Authorization: `Bearer ${gatewayToken}`,
-        'Content-Type': 'application/json',
-      },
-    });
+  // Try gateway HTTP API endpoints
+  const base = gatewayUrl.replace(/\/$/, '');
+  const endpoints = [
+    `${base}/api/v1/sessions`,
+    `${base}/api/sessions`,
+    `${base}/sessions`,
+  ];
 
-    if (response.ok) {
-      const data = await response.json();
-      return NextResponse.json(data);
-    }
-
-    // Try alternative endpoint
-    const altResponse = await fetch(`${gatewayUrl}/api/agents/sessions`, {
-      headers: {
-        Authorization: `Bearer ${gatewayToken}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (altResponse.ok) {
-      const data = await altResponse.json();
-      return NextResponse.json(data);
-    }
-
-    return NextResponse.json(
-      { error: `Gateway returned ${response.status}` },
-      { status: response.status }
-    );
-  } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to connect to gateway' },
-      { status: 500 }
-    );
+  for (const endpoint of endpoints) {
+    try {
+      const response = await fetch(endpoint, {
+        headers: { Authorization: `Bearer ${gatewayToken}`, 'Content-Type': 'application/json' },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const sessions = Array.isArray(data) ? data : data.sessions ?? data.items ?? [];
+        return NextResponse.json({ sessions, count: sessions.length });
+      }
+    } catch { /* try next */ }
   }
+
+  return NextResponse.json({ sessions: [], count: 0 });
 }
