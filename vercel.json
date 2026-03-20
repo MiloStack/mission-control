@@ -1,0 +1,10 @@
+{
+  "env": {
+    "GATEWAY_URL": "@gateway-url",
+    "GATEWAY_TOKEN": "@gateway-token",
+    "NEXT_PUBLIC_APP_URL": "@app-url"
+  },
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install --include=dev"
+}
