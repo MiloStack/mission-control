@@ -1,36 +1,70 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Mission Control
+
+A web dashboard for OpenClaw agents. Connect your gateway to see sessions, cron jobs, notifications, and usage in one place.
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Gateway Connection
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+On first load, you'll be prompted to connect to an OpenClaw gateway. You'll need:
+
+- **Gateway URL** — the public URL where your OpenClaw gateway is running (e.g. `https://your-gateway.example.com`)
+- **Gateway Token** — your gateway authentication token
+
+Find your token in `~/.config/openclaw/config.toml` under `[gateway.auth]`.
+
+## Troubleshooting
+
+### "Connection failed" when testing the gateway URL
+
+1. **Check the URL is correct** — it must be the public URL of your gateway, not `localhost`.
+2. **Check the gateway is running** — run `openclaw gateway status` on the machine hosting your gateway.
+3. **Check the token is correct** — the token should match what's in your `config.toml`.
+4. **Check CORS** — the gateway must allow requests from your Mission Control domain. Set `gateway.bind` to allow your Mission Control URL.
+
+### Dashboard shows no sessions or cron jobs
+
+1. Verify the gateway connection is marked as "Connected" in the header.
+2. Check that the machine running the gateway has `openclaw` CLI available and responding.
+3. Try clicking "Manage" → "Test Connection" to verify the URL + token are still valid.
+
+### Sessions show as "idle" even when actively running
+
+Sessions are marked as "running" if they were updated within the last 5 minutes. After 5 minutes of inactivity they show as "idle". This is expected behavior.
+
+## Architecture
+
+```
+src/
+  app/
+    page.tsx              # Dashboard
+    connect/page.tsx      # Gateway connection flow
+    sessions/[id]/page.tsx # Session detail
+    api/
+      sessions/route.ts   # Proxy: gateway sessions
+      cron/route.ts       # Proxy: gateway cron jobs
+      notifications/route.ts # Notifications from cron/session states
+      session-action/route.ts # Actions: stop/nudge/restart
+  lib/
+    gateway.ts            # Gateway config (localStorage)
+    sessions.ts          # Session types + formatters
+    cron.ts              # Cron types + formatters
+  components/
+    UsageChart.tsx        # Token/cost chart (Recharts)
+```
+
+## Tech Stack
+
+Next.js · TypeScript · Tailwind CSS · Recharts · Radix UI
 
 ## Learn More
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [OpenClaw Docs](https://docs.openclaw.ai)
+- [Next.js Docs](https://nextjs.org/docs)
