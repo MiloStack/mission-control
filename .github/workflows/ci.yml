@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+  smoke-test:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    # Smoke tests require real gateway credentials — skip in CI by default
+    # To enable: add GATEWAY_URL, GATEWAY_TOKEN, APP_URL as repo secrets
+    if: false  # Set to 'true' and add secrets to enable
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run smoke tests
+        run: node scripts/smoke-test.js
+        env:
+          GATEWAY_URL: ${{ secrets.GATEWAY_URL }}
+          GATEWAY_TOKEN: ${{ secrets.GATEWAY_TOKEN }}
+          APP_URL: ${{ secrets.APP_URL }}
