@@ -6,10 +6,21 @@ A web dashboard for OpenClaw agents. Connect your gateway to see sessions, cron 
 
 ```bash
 npm install
+cp .env.example .env.local
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+### Environment Variables
+
+Copy `.env.example` to `.env.local` and fill in your gateway details:
+
+| Variable | Description |
+| :--- | :--- |
+| `GATEWAY_URL` | Your OpenClaw gateway public URL |
+| `GATEWAY_TOKEN` | Gateway auth token from `~/.config/openclaw/config.toml` |
+| `NEXT_PUBLIC_APP_URL` | App URL (default: `http://localhost:3000`) |
 
 ## Gateway Connection
 
